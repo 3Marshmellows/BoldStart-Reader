@@ -251,10 +251,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 
-chrome.contextMenus.onShown.addListener((info, tab) => {
-  if (!tab || !tab.id) return;
-  updateContextMenuState(tab.id, tab.url || "");
-});
+if (chrome.contextMenus.onShown && chrome.contextMenus.onShown.addListener) {
+  chrome.contextMenus.onShown.addListener((info, tab) => {
+    if (!tab || !tab.id) return;
+    updateContextMenuState(tab.id, tab.url || "");
+  });
+}
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
   chrome.tabs.sendMessage(activeInfo.tabId, { type: "STATE" }, (response) => {
