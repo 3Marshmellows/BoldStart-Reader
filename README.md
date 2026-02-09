@@ -65,4 +65,5 @@ Update after changes: click **Reload** on the extension card.
 ---
 
 Copyright (c) 2026 Iva Tutis
+
 Licensed under the Mozilla Public License 2.0 (MPL-2.0).
