@@ -45,6 +45,15 @@ const getAllowlist = () =>
     });
   });
 
+const getBlocklist = () =>
+  new Promise((resolve) => {
+    const fallback = globalThis.BLOCKLIST_DEFAULT || [];
+    chrome.storage.local.get({ blocklist: fallback }, (result) => {
+      const list = Array.isArray(result.blocklist) ? result.blocklist : fallback;
+      resolve(list);
+    });
+  });
+
 const setAllowlist = (list) =>
   new Promise((resolve) => {
     chrome.storage.local.set({ allowlist: list }, () => resolve());
@@ -73,6 +82,11 @@ const updateAllowlist = async (tabId, mode) => {
 const isAllowlistedHost = async (host) => {
   const list = await getAllowlist();
   return list.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
+};
+
+const isBlocklistedHost = async (host) => {
+  const list = await getBlocklist();
+  return list.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
 };
 
 let lastAllowlist = DEFAULT_ALLOWLIST.slice();
@@ -202,6 +216,28 @@ chrome.contextMenus.removeAll(() => {
   });
 });
 
+const updateContextMenuState = async (tabId, url) => {
+  const host = getHost(url || "");
+  if (!host) return;
+  const [allowed, blocked] = await Promise.all([
+    isAllowlistedHost(host),
+    isBlocklistedHost(host)
+  ]);
+
+  const allowTitle = blocked
+    ? "Allow this site (currently blocked)"
+    : "Allow this site";
+
+  chrome.contextMenus.update("allow-site", {
+    enabled: !allowed,
+    title: allowTitle
+  });
+  chrome.contextMenus.update("remove-site", {
+    enabled: allowed
+  });
+  chrome.contextMenus.refresh();
+};
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!tab || !tab.id) return;
   if (info.menuItemId === "allow-site") {
@@ -213,6 +249,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "open-options") {
     chrome.runtime.openOptionsPage();
   }
+});
+
+chrome.contextMenus.onShown.addListener((info, tab) => {
+  if (!tab || !tab.id) return;
+  updateContextMenuState(tab.id, tab.url || "");
 });
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
