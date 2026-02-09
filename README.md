@@ -1,13 +1,17 @@
 # BoldStart Reader (Chrome Extension)
 
-This extension bolds the first 1 or 3 letters of each word on a web page. The idea is to create visual "fixation points" that some readers find easier to scan.
+BoldStart Reader bolds the first part of each word to create visual “fixation points” for faster scanning.
+
+## Quick start
+1. Open `chrome://extensions`
+2. Enable **Developer mode**
+3. **Load unpacked** → select the repo folder
 
 ## How it works
-- A content script walks the page DOM and finds plain text nodes.
-- It skips sensitive or non-readable elements like `script`, `style`, `input`, `textarea`, `code`, `pre`, and editable fields.
-- For each word, it wraps the first 1 or 3 characters in a `<span>` with `font-weight: bold`.
-- It observes the page for new content and applies the same transformation.
-- A built-in blocklist prevents the extension from running on banking/finance sites.
+- Walks the DOM and finds plain text nodes.
+- Skips `script`, `style`, `input`, `textarea`, `code`, `pre`, and editable fields.
+- Bolds a word prefix based on length (short words: 1 letter; longer words: ~40%).
+- Uses a blocklist to avoid sensitive domains.
 
 ```mermaid
 flowchart TD
@@ -15,30 +19,28 @@ flowchart TD
   B --> C{"Blocked host?"}
   C -- "Yes" --> D["Do nothing"]
   C -- "No" --> E["Walk DOM text nodes"]
-  E --> F["Wrap first 1-3 letters in <span>"]
-  F --> G["Observe for new nodes"]
-  G --> E
+  E --> F["Bold word prefix"]
 ```
 
 ## Privacy and data handling
-- There are **no network requests**.
-- Allowlist is stored **locally** in Chrome (no sync).
+- No network requests.
+- Allowlist stored locally in Chrome (no sync).
 
 ## About the technique
-This approach is often referred to as **Bionic Reading** (or bionic text). It is popular as a reading aid, including among neurodivergent readers, but peer‑reviewed evidence so far does **not** show consistent improvements in reading speed or comprehension for general populations. Research specifically on neurodivergent groups is still limited. Consider it a personal‑preference aid rather than a proven improvement.
+Often called **Bionic Reading**. Evidence is mixed; treat it as a personal‑preference aid rather than a proven improvement for speed or comprehension.
 
-## Deploy (local)
-1. Clone the repo: `git clone <repo-url> /path/to/highlighter`
-2. Open Chrome and go to `chrome://extensions`.
-3. Enable **Developer mode**.
-4. Click **Load unpacked** and select the repo folder.
+## Install (local)
+1. Clone: `git clone <repo-url> /path/to/highlighter`
+2. Open `chrome://extensions`
+3. Enable **Developer mode**
+4. **Load unpacked** → select the repo folder
 
-To update after changes, click **Reload** on the extension card in `chrome://extensions`.
+Update after changes: click **Reload** on the extension card.
 
-## Quick update
-- After pulling new changes, click **Reload** on the extension card.
+## Privacy note
+- Keep **Allow access to file URLs** turned **off** in the extension details page unless you explicitly need it.
 
-## Toggle (no storage)
+## Toggle
 - Click the extension icon to toggle on/off for the active tab.
 - Hotkey: `Alt+B` (Windows/Linux) or `Command+B` (macOS).
 - Badge shows `ON` (green) or `OFF` (red) per tab.
@@ -46,10 +48,10 @@ To update after changes, click **Reload** on the extension card in `chrome://ext
 ## Fort Knox + allowlist mode
 - Runs **only when you explicitly toggle it on** for the current tab.
 - Only works on **allowlisted** sites.
-- Uses **`activeTab`** permission so it can only access a site after a user action.
-- No auto‑injection on navigation; refresh resets to off.
+- Uses **`activeTab`** so it only gains access after a user action.
+- No auto‑run on navigation; refresh resets to off.
 - Right‑click the extension icon to add/remove the current site from the allowlist.
 
 ## Customize the blocklist
-Open the extension options page and edit the blocklist there (one domain per line).
-Right-click the extension icon and choose **Open blocklist options**.
+- Open the extension options page and edit the blocklist there (one domain per line).
+- Right‑click the extension icon and choose **Open blocklist options**.
