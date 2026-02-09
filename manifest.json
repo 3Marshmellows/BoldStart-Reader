@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "BoldStart Reader",
+  "version": "1.0.0",
+  "description": "Bold the first letter(s) of every word on a page.",
+  "icons": {
+    "16": "assets/icons/icon-16.png",
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "First Letters Bold",
+    "default_icon": {
+      "16": "assets/icons/icon-16.png",
+      "48": "assets/icons/icon-48.png",
+      "128": "assets/icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background/index.js"
+  },
+  "permissions": ["scripting", "activeTab", "storage", "contextMenus"],
+  "commands": {
+    "toggle-extension": {
+      "suggested_key": {
+        "default": "Alt+B",
+        "mac": "Command+B"
+      },
+      "description": "Toggle bolding on the active page"
+    }
+  },
+  "content_scripts": []
+}
