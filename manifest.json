@@ -20,6 +20,7 @@
     "service_worker": "src/background/index.js"
   },
   "permissions": ["scripting", "activeTab", "storage", "contextMenus"],
+  "options_page": "src/options/index.html",
   "commands": {
     "toggle-extension": {
       "suggested_key": {

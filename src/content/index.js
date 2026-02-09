@@ -5,7 +5,7 @@
     boldClass: "hl-bold"
   };
 
-  const BLOCKED_HOSTS = [
+  const DEFAULT_BLOCKLIST = [
     "chase.com",
     "bankofamerica.com",
     "wellsfargo.com",
@@ -71,6 +71,7 @@
   ]);
 
   let enabled = true;
+  let blocklist = DEFAULT_BLOCKLIST.slice();
 
   const isElement = (node) => node && node.nodeType === Node.ELEMENT_NODE;
   const isText = (node) => node && node.nodeType === Node.TEXT_NODE;
@@ -100,7 +101,7 @@
   const isBlockedHost = () => {
     const host = (location.hostname || "").toLowerCase();
     if (!host) return false;
-    return BLOCKED_HOSTS.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
+    return blocklist.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
   };
 
   const lettersForWord = (word) => {
@@ -240,11 +241,28 @@
     }
   });
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
+  const init = () => {
+    chrome.storage.local.get({ blocklist: DEFAULT_BLOCKLIST }, (result) => {
+      blocklist = Array.isArray(result.blocklist) ? result.blocklist : DEFAULT_BLOCKLIST;
       if (enabled) apply();
-    }, { once: true });
+    });
+  };
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+    if (changes.blocklist) {
+      blocklist = Array.isArray(changes.blocklist.newValue)
+        ? changes.blocklist.newValue
+        : DEFAULT_BLOCKLIST;
+      if (isBlockedHost()) {
+        disable();
+      }
+    }
+  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
   } else {
-    if (enabled) apply();
+    init();
   }
 })();

@@ -51,4 +51,5 @@ To update after changes, click **Reload** on the extension card in `chrome://ext
 - Right‑click the extension icon to add/remove the current site from the allowlist.
 
 ## Customize the blocklist
-Edit the `BLOCKED_HOSTS` array in `src/content/index.js` to add or remove domains.
+Open the extension options page and edit the blocklist there (one domain per line).
+Right-click the extension icon and choose **Open blocklist options**.

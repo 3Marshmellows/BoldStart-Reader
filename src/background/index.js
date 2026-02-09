@@ -112,6 +112,11 @@ chrome.contextMenus.removeAll(() => {
     title: "Remove site from allowlist",
     contexts: ["action"]
   });
+  chrome.contextMenus.create({
+    id: "open-options",
+    title: "Open blocklist options",
+    contexts: ["action"]
+  });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -121,6 +126,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
   if (info.menuItemId === "remove-site") {
     updateAllowlist(tab.id, "remove");
+  }
+  if (info.menuItemId === "open-options") {
+    chrome.runtime.openOptionsPage();
   }
 });
 
