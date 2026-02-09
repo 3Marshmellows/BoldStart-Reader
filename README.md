@@ -61,3 +61,8 @@ Update after changes: click **Reload** on the extension card.
 ## Customize the blocklist
 - Open the extension options page and edit the blocklist there (one domain per line).
 - Right‑click the extension icon and choose **Open allow/blocklist options**.
+
+---
+
+Copyright (c) 2026 Iva Tutis
+Licensed under the Mozilla Public License 2.0 (MPL-2.0).
