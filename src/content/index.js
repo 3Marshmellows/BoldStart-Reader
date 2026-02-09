@@ -5,58 +5,8 @@
     boldClass: "hl-bold"
   };
 
-  const DEFAULT_BLOCKLIST = [
-    "chase.com",
-    "bankofamerica.com",
-    "wellsfargo.com",
-    "citi.com",
-    "usbank.com",
-    "capitalone.com",
-    "discover.com",
-    "americanexpress.com",
-    "schwab.com",
-    "fidelity.com",
-    "vanguard.com",
-    // UK banks + banks operating in the UK (major retail/digital brands)
-    "barclays.co.uk",
-    "barclaycard.co.uk",
-    "hsbc.co.uk",
-    "firstdirect.com",
-    "lloydsbank.com",
-    "halifax.co.uk",
-    "bankofscotland.co.uk",
-    "natwest.com",
-    "rbs.co.uk",
-    "ulsterbank.co.uk",
-    "santander.co.uk",
-    "tsb.co.uk",
-    "nationwide.co.uk",
-    "metrobankonline.co.uk",
-    "co-operativebank.co.uk",
-    "virginmoney.com",
-    "clydesdalebank.co.uk",
-    "yorkshirebank.co.uk",
-    "starlingbank.com",
-    "monzo.com",
-    "revolut.com",
-    "chase.co.uk",
-    "zopa.com",
-    "atombank.co.uk",
-    "tandem.co.uk",
-    "aldermore.co.uk",
-    "paragonbank.co.uk",
-    "shawbrook.co.uk",
-    "triodos.co.uk",
-    "caterallen.co.uk",
-    "sainsburysbank.co.uk",
-    "tescobank.com",
-    "marksandspencer.com",
-    "bankofirelanduk.com",
-    "aibgb.co.uk",
-    "icicibank.co.uk",
-    "citibank.co.uk",
-    "sc.co.uk"
-  ];
+  const DEFAULT_ALLOWLIST = globalThis.ALLOWLIST_DEFAULT || [];
+  const DEFAULT_BLOCKLIST = globalThis.BLOCKLIST_DEFAULT || [];
 
   const SKIP_TAGS = new Set([
     "SCRIPT",
@@ -70,8 +20,14 @@
     "PRE"
   ]);
 
-  let enabled = true;
+  let enabled = false;
+  let allowlist = DEFAULT_ALLOWLIST.slice();
   let blocklist = DEFAULT_BLOCKLIST.slice();
+  let observer = null;
+  let pending = null;
+  let lastRunAt = null;
+  const MIN_INTERVAL_MS = 250;
+  const shouldRun = globalThis.RateLimit ? globalThis.RateLimit.shouldRun : null;
 
   const isElement = (node) => node && node.nodeType === Node.ELEMENT_NODE;
   const isText = (node) => node && node.nodeType === Node.TEXT_NODE;
@@ -102,6 +58,12 @@
     const host = (location.hostname || "").toLowerCase();
     if (!host) return false;
     return blocklist.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
+  };
+
+  const isAllowlistedHost = () => {
+    const host = (location.hostname || "").toLowerCase();
+    if (!host) return false;
+    return allowlist.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
   };
 
   const lettersForWord = (word) => {
@@ -194,8 +156,17 @@
     nodes.forEach(processTextNode);
   };
 
+  const canRun = () => {
+    if (isBlockedHost()) return false;
+    if (!isAllowlistedHost()) return false;
+    const now = Date.now();
+    if (shouldRun && !shouldRun(now, lastRunAt, MIN_INTERVAL_MS)) return false;
+    lastRunAt = now;
+    return true;
+  };
+
   const apply = async () => {
-    if (isBlockedHost()) return;
+    if (!canRun()) return;
     ensureStyle();
     walkAndProcess(document.body);
   };
@@ -209,10 +180,14 @@
 
   const disable = () => {
     resetProcessed();
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
   };
 
   const setEnabled = (next) => {
-    enabled = next && !isBlockedHost();
+    enabled = next && !isBlockedHost() && isAllowlistedHost();
     if (enabled) {
       enable();
     } else {
@@ -223,6 +198,20 @@
 
   const enable = () => {
     apply();
+    if (observer || !document.body) return;
+    observer = new MutationObserver(() => {
+      if (!enabled) return;
+      if (pending) return;
+      pending = setTimeout(() => {
+        pending = null;
+        apply();
+      }, 150);
+    });
+    observer.observe(document.body, {
+      childList: true,
+      characterData: true,
+      subtree: true
+    });
   };
 
   const toggle = () => {
@@ -242,14 +231,25 @@
   });
 
   const init = () => {
-    chrome.storage.local.get({ blocklist: DEFAULT_BLOCKLIST }, (result) => {
-      blocklist = Array.isArray(result.blocklist) ? result.blocklist : DEFAULT_BLOCKLIST;
-      if (enabled) apply();
-    });
+    chrome.storage.local.get(
+      { allowlist: DEFAULT_ALLOWLIST, blocklist: DEFAULT_BLOCKLIST },
+      (result) => {
+        allowlist = Array.isArray(result.allowlist) ? result.allowlist : DEFAULT_ALLOWLIST;
+        blocklist = Array.isArray(result.blocklist) ? result.blocklist : DEFAULT_BLOCKLIST;
+      }
+    );
   };
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;
+    if (changes.allowlist) {
+      allowlist = Array.isArray(changes.allowlist.newValue)
+        ? changes.allowlist.newValue
+        : DEFAULT_ALLOWLIST;
+      if (enabled && !isAllowlistedHost()) {
+        disable();
+      }
+    }
     if (changes.blocklist) {
       blocklist = Array.isArray(changes.blocklist.newValue)
         ? changes.blocklist.newValue

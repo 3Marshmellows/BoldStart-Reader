@@ -1,69 +1,24 @@
 (() => {
-  const DEFAULT_BLOCKLIST = [
-    "chase.com",
-    "bankofamerica.com",
-    "wellsfargo.com",
-    "citi.com",
-    "usbank.com",
-    "capitalone.com",
-    "discover.com",
-    "americanexpress.com",
-    "schwab.com",
-    "fidelity.com",
-    "vanguard.com",
-    "barclays.co.uk",
-    "barclaycard.co.uk",
-    "hsbc.co.uk",
-    "firstdirect.com",
-    "lloydsbank.com",
-    "halifax.co.uk",
-    "bankofscotland.co.uk",
-    "natwest.com",
-    "rbs.co.uk",
-    "ulsterbank.co.uk",
-    "santander.co.uk",
-    "tsb.co.uk",
-    "nationwide.co.uk",
-    "metrobankonline.co.uk",
-    "co-operativebank.co.uk",
-    "virginmoney.com",
-    "clydesdalebank.co.uk",
-    "yorkshirebank.co.uk",
-    "starlingbank.com",
-    "monzo.com",
-    "revolut.com",
-    "chase.co.uk",
-    "zopa.com",
-    "atombank.co.uk",
-    "tandem.co.uk",
-    "aldermore.co.uk",
-    "paragonbank.co.uk",
-    "shawbrook.co.uk",
-    "triodos.co.uk",
-    "caterallen.co.uk",
-    "sainsburysbank.co.uk",
-    "tescobank.com",
-    "marksandspencer.com",
-    "bankofirelanduk.com",
-    "aibgb.co.uk",
-    "icicibank.co.uk",
-    "citibank.co.uk",
-    "sc.co.uk"
-  ];
+  const DEFAULT_ALLOWLIST = globalThis.ALLOWLIST_DEFAULT || [];
+  const DEFAULT_BLOCKLIST = globalThis.BLOCKLIST_DEFAULT || [];
 
+  const allowlistArea = document.getElementById("allowlist");
   const textarea = document.getElementById("blocklist");
   const saveBtn = document.getElementById("save");
   const status = document.getElementById("status");
+  let lastAllowlist = DEFAULT_ALLOWLIST.slice();
+  let lastBlocklist = DEFAULT_BLOCKLIST.slice();
 
-  const normalize = (lines) => {
-    const cleaned = lines
-      .map((line) => line.trim().toLowerCase())
-      .filter(Boolean);
-    return Array.from(new Set(cleaned)).sort();
-  };
+  const normalize = globalThis.ListUtils ? globalThis.ListUtils.normalize : null;
+  const reconcileLists = globalThis.ListUtils ? globalThis.ListUtils.reconcileLists : null;
+  if (!normalize || !reconcileLists) {
+    status.textContent = "Missing list utilities. Please reload the extension.";
+    saveBtn.disabled = true;
+    return;
+  }
 
-  const render = (list) => {
-    textarea.value = list.join("\n");
+  const render = (el, list) => {
+    el.value = list.join("\n");
   };
 
   const showStatus = (text) => {
@@ -73,16 +28,52 @@
     }, 1200);
   };
 
-  chrome.storage.local.get({ blocklist: DEFAULT_BLOCKLIST }, (result) => {
-    const list = Array.isArray(result.blocklist) ? result.blocklist : DEFAULT_BLOCKLIST;
-    render(list);
-  });
+  const showNotice = (text) => {
+    status.textContent = text;
+  };
+
+  chrome.storage.local.get(
+    { allowlist: DEFAULT_ALLOWLIST, blocklist: DEFAULT_BLOCKLIST },
+    (result) => {
+      const allowlist = Array.isArray(result.allowlist)
+        ? result.allowlist
+        : DEFAULT_ALLOWLIST;
+      const blocklist = Array.isArray(result.blocklist) ? result.blocklist : DEFAULT_BLOCKLIST;
+      lastAllowlist = allowlist.slice();
+      lastBlocklist = blocklist.slice();
+      render(allowlistArea, allowlist);
+      render(textarea, blocklist);
+    }
+  );
 
   saveBtn.addEventListener("click", () => {
-    const list = normalize(textarea.value.split("\n"));
-    chrome.storage.local.set({ blocklist: list }, () => {
-      render(list);
+    let allowlist = normalize(allowlistArea.value.split("\n"));
+    let blocklist = normalize(textarea.value.split("\n"));
+
+    ({ allowlist, blocklist } = reconcileLists({
+      allowlist,
+      blocklist,
+      lastAllowlist,
+      lastBlocklist,
+      confirmMoveToAllow: (item) =>
+        window.confirm(
+          `"${item}" was previously in the blocklist. Do you really want to move it to the allowlist?`
+        )
+    }));
+
+    chrome.storage.local.set({ allowlist, blocklist }, () => {
+      lastAllowlist = allowlist.slice();
+      lastBlocklist = blocklist.slice();
+      render(allowlistArea, allowlist);
+      render(textarea, blocklist);
       showStatus("Saved");
     });
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+    if (changes.listConflictNotice && changes.listConflictNotice.newValue) {
+      showNotice(changes.listConflictNotice.newValue.message || "Lists updated.");
+    }
   });
 })();

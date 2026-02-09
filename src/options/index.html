@@ -72,6 +72,10 @@
   </head>
   <body>
     <main class="wrap">
+      <h1>Allowlist</h1>
+      <p>One domain per line. Subdomains are matched automatically.</p>
+      <textarea id="allowlist" spellcheck="false" placeholder="example.com"></textarea>
+      <p class="hint">Extension runs only on allowlisted sites.</p>
       <h1>Blocklist</h1>
       <p>One domain per line. Subdomains are matched automatically.</p>
       <textarea id="blocklist" spellcheck="false" placeholder="example.com"></textarea>
@@ -81,6 +85,9 @@
       </div>
       <p class="hint">Stored locally in Chrome (no sync).</p>
     </main>
+    <script src="../shared/allowlist.js"></script>
+    <script src="../shared/blocklist.js"></script>
+    <script src="../shared/list-utils.js"></script>
     <script src="options.js"></script>
   </body>
 </html>
