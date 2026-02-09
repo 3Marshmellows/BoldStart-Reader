@@ -1,7 +1,16 @@
-importScripts("src/shared/allowlist.js");
-importScripts("src/shared/blocklist.js");
-importScripts("src/shared/list-utils.js");
-importScripts("src/shared/rate-limit.js");
+const safeImport = (path) => {
+  try {
+    importScripts(path);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(`Failed to import ${path}`, err);
+  }
+};
+
+safeImport("../shared/allowlist.js");
+safeImport("../shared/blocklist.js");
+safeImport("../shared/list-utils.js");
+safeImport("../shared/rate-limit.js");
 
 const DEFAULT_ALLOWLIST = globalThis.ALLOWLIST_DEFAULT || [];
 
